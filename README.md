@@ -1,17 +1,20 @@
-# group-018
-What you are going to make?
-We are going to make a robot using 2D-mapping system to detect objects and walls etc, for it to later on turn on a UV-light that will sanetize surfaces and objects close to the UV-light. 
+#Group 18
 
-A rover type cleaning machine that can map a close space area while providing sanitary service. This smart car prototype can be put in an indoor environment without initial information about the area. However, it will still be able to traverse all empty and passable space to provide the designated cleaning as much as possible.
+##What are you going to make?
+>We are going to make a vehicle that sanitises the surfaces from an indoor environment with the help of a UV-light. It will take as input an existent 2D map of the environment and a predefined path that will follow in order to clean such surfaces. We assume that the vehicle is able to know where it is respect to the map at every moment, as well as the starting point.       
 
-Why will you make it?
-Because the device can be a low priced option for sanitation. Our device can be the upgraded version of the existent romba cleaning machine. For many of us in the group this becomes a new experience where we have the intention to learn from this project.
 
-What problem does it solve?
-It solves problems like diseases spreading and other bacteria infecting objects and people in indoor areas, it helps keeping a fresh environment. Faster cleaning time due to definite pathing pattern. Also reducing the chance of being stuck in impassable area.
+##Why will you make it?
+>There is a current need to keep surfaces clean from dangerous microorganisms such that people can interact without risking to get infected from them. 
+	
 
-How you are going to make it?
-By using the three different types of sensors attached to both sides and front, we will be able to detect the necessary distance between the smart car and surrounding object. Thus by using a Cartesian 2D map, we will be able to store and recognize area the car has passed through.
+##What problem does it solve?
+>We are providing a cost effective solution to the problem of disinfecting surfaces since our solution will be able to run in a consumer-grade hardware which could be more affordable than other systems.
 
-What kind of technology you are going to use?
-3 different types sensors (Infrared sensor, ultra sonic sensors and micro lidar sensors), The smart car, Visual Studio Code, JetBrains.
+
+##How you are going to make it?
+>It will take a 2D map, the vehicle's initial position and trajectory to follow (setup predefined positions or waypoint positions). In the beginning it will select its closest waypoint and go to it. Once it arrives to the waypoint, it will wait a given time so it make sure that the surface is cleaned. Next, it will find the next waypoint to visit, according to the planned trajectory, and go to it. It will repeat this steps until it has visited all planned waypoints.   
+
+
+##What kind of technology are you going to use?
+>We are going to implement this in Arduino, using the SmartCar platform. We will make use of different languages such as C#, C++, Java, Kotlin. 
