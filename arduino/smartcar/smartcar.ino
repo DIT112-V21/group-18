@@ -14,25 +14,8 @@ void setup() {
 }
 
 void loop() {
-  handleInput();
+  car.setSpeed(90);
   preventCrash();
-}
-
-void handleInput() {
-  if (Serial.available()) {
-    String input = Serial.readStringUntil('\n');
-    if (input.startsWith("m")) {
-      int throttle = input.substring(1).toInt();
-      car.setSpeed(throttle);
-    }
-    else if (input.startsWith("t")) {
-      int deg = input.substring(1).toInt();
-      car.setAngle(deg);
-    }
-    else if (input.startsWith("r")) {
-      control.overrideMotorSpeed(100, -100);
-    }
-  }
 }
 
 void preventCrash() {
@@ -41,7 +24,8 @@ void preventCrash() {
     car.setSpeed(0);
     delay(500);
     control.overrideMotorSpeed(100, -100);
-    delay(1250);
+    delay(800);
     car.setSpeed(0);
+    delay(200);
   }
 }
