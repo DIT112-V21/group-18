@@ -20,7 +20,7 @@ void loop() {
 
 void preventCrash() {
   unsigned int fDistance = front.getDistance();
-  if (fDistance > 0) {
+  if (fDistance > 0 && fDistance < 200) {
     car.setSpeed(0);
     delay(500);
     control.overrideMotorSpeed(100, -100);
