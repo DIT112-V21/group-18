@@ -1,25 +1,97 @@
+#include <vector>
+
+#include <MQTT.h>
+#include <WiFi.h>
+#include <algorithm>
+#ifdef __SMCE__
+#include <OV767X.h>
+#endif
+
 #include <Smartcar.h>
 
 // value taken from POSIX according to TA Ryan
 #define PI 3.14159265358979323846264338327950288
 
+#ifndef __SMCE__
+WiFiClient net;
+#endif
+MQTTClient mqtt;
+
 ArduinoRuntime arduinoRuntime;
-SR04 front(arduinoRuntime, 6, 7, 200);
 BrushedMotor leftMotor(arduinoRuntime, smartcarlib::pins::v2::leftMotorPins);
 BrushedMotor rightMotor(arduinoRuntime, smartcarlib::pins::v2::rightMotorPins);
 DifferentialControl control(leftMotor, rightMotor);
 
 SimpleCar car(control);
 
+const auto oneSecond = 1000UL;
+const auto triggerPin = 6;
+const auto echoPin = 7;
+const auto maxDistance = 400;
+SR04 front(arduinoRuntime, triggerPin, echoPin, maxDistance);
+
+std::vector<char> frameBuffer;
+
 void setup() {
   Serial.begin(9600);
-  Serial.setTimeout(280);
+#ifdef __SMCE__
+  Camera.begin(QVGA, RGB888, 15);
+  frameBuffer.resize(Camera.width() * Camera.height() * Camera.bytesPerPixel());
+  mqtt.begin("trenavix.com", 1883, WiFi); //NA based broker, use a EU broker like aerostun.dev if in Europe for faster connection!
+  // mqtt.begin(WiFi); // Will connect to localhost
+#else
+  mqtt.begin(net);
+#endif
+  if (mqtt.connect("arduino", "public", "public")) {
+    mqtt.subscribe("smartcar/#", 1);
+    mqtt.onMessage([](String topic, String message) {
+      if (topic == "smartcar/analog/") {
+        int commaIdx = message.indexOf(",");
+        float x = message.substring(0, commaIdx - 1).toFloat();
+        float y =  message.substring(commaIdx+1).toFloat();
+        joystick(x,y);
+        Serial.println(topic + " " + message);
+      } 
+      else {
+        Serial.println(topic + " " + message);
+      }
+    });
+  }
 }
 
 void loop() {
-  car.setSpeed(90);
-  preventCrash();
+  if (mqtt.connected()) {
+    mqtt.loop();
+    const auto currentTime = millis();
+#ifdef __SMCE__
+    static auto previousFrame = 0UL;
+    if (currentTime - previousFrame >= 65) {
+      previousFrame = currentTime;
+      Camera.readFrame(frameBuffer.data());
+      //mqtt.publish("smartcar/camera", frameBuffer.data(), frameBuffer.size(), //Publish camera data
+      //             false, 0);
+    }
+#endif
+    static auto previousTransmission = 0UL;
+    if (currentTime - previousTransmission >= oneSecond) {
+      previousTransmission = currentTime;
+      const auto distance = String(front.getDistance());
+      mqtt.publish("smartcar/ultrasound/front", distance); //publish US data
+    }
+  }
+#ifdef __SMCE__
+  // Avoid over-using the CPU if we are running in the emulator
+  delay(35);
+#endif
 }
+
+/*ArduinoRuntime arduinoRuntime;
+SR04 front(arduinoRuntime, 6, 7, 200);
+BrushedMotor leftMotor(arduinoRuntime, smartcarlib::pins::v2::leftMotorPins);
+BrushedMotor rightMotor(arduinoRuntime, smartcarlib::pins::v2::rightMotorPins);
+DifferentialControl control(leftMotor, rightMotor);
+
+SimpleCar car(control);*/
 
 // assuming normalized values between -1 and 1
 void joystick(float x, float y) {

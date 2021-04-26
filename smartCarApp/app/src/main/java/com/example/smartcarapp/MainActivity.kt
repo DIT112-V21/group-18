@@ -9,8 +9,11 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+<<<<<<< Updated upstream
 import androidx.core.view.isVisible
 import com.google.android.material.textfield.TextInputLayout
+=======
+>>>>>>> Stashed changes
 import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.*
 
@@ -26,6 +29,7 @@ class MainActivity : AppCompatActivity() {
         val connectButton = findViewById<Button>(R.id.testButton)
         val publishMsgButton = findViewById<Button>(R.id.publishMsgButton)
         val publishMsgText = findViewById<EditText>(R.id.publishMsgText)
+<<<<<<< Updated upstream
         connectButton.setOnClickListener {
             connect(this);
         }
@@ -116,6 +120,18 @@ class MainActivity : AppCompatActivity() {
             })
         } catch (e: MqttException) {
             e.printStackTrace()
+=======
+        val domainInput = findViewById<EditText>(R.id.domainInput)
+        connectButton.setOnClickListener {
+            val intent = Intent(this, ControlActivity::class.java)
+            intent.putExtra("domainInput", domainInput.text.toString())
+            startActivity(intent)
+        }
+        publishMsgButton.setOnClickListener {
+            //val newMsg = publishMsgText.text.toString()
+            //publish("smartcar/", newMsg)
+            //publishMsgText.setText("")
+>>>>>>> Stashed changes
         }
     }
 }
