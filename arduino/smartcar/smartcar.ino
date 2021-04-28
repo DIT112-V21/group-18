@@ -22,20 +22,22 @@ const auto oneSecond = 1000UL;
 const int FRONT_US_PIN_6 = 6;
 const int FRONT_US_PIN_7 = 7;
 SR04 frontUS(arduinoRuntime, FRONT_US_PIN_6, FRONT_US_PIN_7, 200);
+
 const int FRONT_IR_PIN_0 = 0;
 const int BACK_IR_PIN_3 = 3;
 GP2D120 frontIR(arduinoRuntime, FRONT_IR_PIN_0);
 GP2D120 backIR(arduinoRuntime, BACK_IR_PIN_3);
 BrushedMotor leftMotor(arduinoRuntime, smartcarlib::pins::v2::leftMotorPins);
 BrushedMotor rightMotor(arduinoRuntime, smartcarlib::pins::v2::rightMotorPins);
+
 DifferentialControl control(leftMotor, rightMotor);
 SimpleCar car(control);
-
 
 unsigned int minDistance = 0;
 unsigned int obstacleAvoidDistance = 100;
 
 std::vector<char> frameBuffer;
+
 
 void setup() {
   Serial.begin(9600);
