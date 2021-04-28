@@ -15,8 +15,8 @@ import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.*
 
 //Main Activity
-//Todo: Make a second activity (page) with GUI controls that generate MQTT messages to publish.
-//For now: subscribing and publishing to MQTT broker is currently functional for testing.
+//Potential todo: create class for MQTT client to function between multiple activities
+//Temporary solution: MQTT client initialised on each activity (for now only active on ControlActivity)
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
