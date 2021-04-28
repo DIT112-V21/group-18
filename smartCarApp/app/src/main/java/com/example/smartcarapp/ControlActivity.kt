@@ -24,7 +24,7 @@ class ControlActivity : AppCompatActivity() {
         val coordsText = findViewById<TextView>(R.id.CoordDisplay)
         val joystick = findViewById<JoystickView>(R.id.joyStick)
         joystick.setOnMoveListener { angle, strength ->
-            //Log.d("JoyStickStrength:", strength.toString())
+            //Todo: Reimplement this function with the .ino function to natively support the magnitude/angle rather than convert back and forth
             val angleRadians = -angle.toFloat() * Math.PI / 180
             val length = strength.toFloat() / 100 //change from 0 to 100, to 0 to 1
             val analogX = cos(angleRadians)*length
