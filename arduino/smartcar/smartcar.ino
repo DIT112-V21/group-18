@@ -136,3 +136,16 @@ void preventCrashWithUSandIR(DistanceSensor& distanceSensor) {
       delay (200);
     }
 }
+void detectSurface(DistanceSensor& distanceSensor){
+  unsigned int distance = distanceSensor.getDistance();
+  if (distance > minDistance && distance < obstacleAvoidDistance) {
+      Serial.print(distanceSensor.getDistance());
+      Serial.println(" Obstacle detected. ");
+      car.setSpeed(0);
+      delay(20000);
+      car.overrideMotorSpeed(50, -100);
+      delay (800);
+      car.setSpeed(0);
+      delay (20000);
+  }
+ 
