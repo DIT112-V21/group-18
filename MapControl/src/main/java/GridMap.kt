@@ -1,14 +1,14 @@
 class GridMap(map: Array<Array<RGB?>>, car: Car, direction: String) {
-    private var basemap: Array<Array<RGB?>>
-    private val carLength // longer side
-            : Double
+    private var basemap: Array<Array<RGB>>
+    private val carLength: Double// longer side
+
     private val carWidth: Double
     private var starting_pixel: Coordinate
-    private var borderAdjustedMap: Array<Array<RGB?>>
+    private lateinit var borderAdjustedMap: Array<Array<RGB>>
     private val carDirection: String
 
     //car coordinate is always (0, 0)
-    val map: Array<Array<Gridnode>>
+    lateinit var  map: Array<Array<Gridnode>>
     private val emptyspaceCorlor: RGB = RGB(255, 255, 255)
     private val nontraversableColor: RGB = RGB(79, 84, 82)
     private val carColor: RGB = RGB(255, 0, 0)
@@ -25,10 +25,10 @@ class GridMap(map: Array<Array<RGB?>>, car: Car, direction: String) {
         upB = carLength - starting_pixel.verr % carLength
         downB = carLength - (basemap.size - starting_pixel.verr) % carLength
         leftB = carWidth - starting_pixel.horr % carWidth
-        rightB = carWidth - (basemap[0].length - starting_pixel.horr) % carWidth
+        rightB = carWidth - (basemap[0].size - starting_pixel.horr) % carWidth
         val length = basemap.size + upB + downB
-        val width: Double = basemap[0].length + leftB + rightB
-        borderAdjustedMap = Array<Array<RGB?>>(length.toInt()) { arrayOfNulls<RGB>(width.toInt()) }
+        val width: Double = basemap[0].size + leftB + rightB
+
         run {
             var i = 0
             while (i < length) {
@@ -41,8 +41,8 @@ class GridMap(map: Array<Array<RGB?>>, car: Car, direction: String) {
             }
         }
         for (i in basemap.indices) {
-            for (j in 0 until basemap[0].length) {
-                borderAdjustedMap[(i + upB)][(j + leftB)] = basemap[i][j] // wtf did I do here?
+            for (j in 0 until basemap[0].size) {
+                borderAdjustedMap[((i + upB).toInt())][((j + leftB).toInt())] = basemap[i][j] // wtf did I do here?
             }
         }
         starting_pixel = Coordinate(starting_pixel.verr + upB.toInt(), starting_pixel.horr + leftB.toInt())
@@ -99,13 +99,13 @@ class GridMap(map: Array<Array<RGB?>>, car: Car, direction: String) {
 
     //generate grid map based on the adjusted map
     fun generateGridMap() {
-        val gridMap = Array(borderAdjustedMap.size) { arrayOfNulls<Gridnode>(borderAdjustedMap[0].length) }
+        val gridMap = Array(borderAdjustedMap.size) { arrayOfNulls<Gridnode>(borderAdjustedMap[0].size) }
 
         //loop from  left to right, top to bottom, vertical outer loop
         var i = 0
         while (i < borderAdjustedMap.size) {
             var j = 0
-            while (j < borderAdjustedMap[0].length) {
+            while (j < borderAdjustedMap[0].size) {
                 val verr = ((i - starting_pixel.verr) / carLength).toInt()
                 val horr = (-((j - starting_pixel.horr) / carWidth)).toInt()
                 val carcoor = Coordinate(verr, horr)
@@ -118,7 +118,7 @@ class GridMap(map: Array<Array<RGB?>>, car: Car, direction: String) {
                     var w = 0
                     while (w < carWidth) {
                         val f = j + w
-                        sum += borderAdjustedMap[i + l][j + w].getRed()
+                        sum += borderAdjustedMap[i + l][j + w].red
                         w++
                     }
                     l++
@@ -138,7 +138,7 @@ class GridMap(map: Array<Array<RGB?>>, car: Car, direction: String) {
                         }
                         l++
                     }
-                } else if (sum >= cull_ratio * (emptyspaceCorlor.getRed() * carLength * carWidth) as Double) {
+                } else if (sum >= cull_ratio * (emptyspaceCorlor.red * carLength * carWidth) as Double) {
                     traversable = true
                     var l = 0
                     while (l < carLength) {
@@ -184,22 +184,27 @@ class GridMap(map: Array<Array<RGB?>>, car: Car, direction: String) {
 
     private fun rotateRight() {
         val oldLength = basemap.size
-        val oldWidth: Int = basemap[0].length
-        val rotatedMap: Array<Array<RGB?>> = Array<Array<RGB?>>(oldWidth) { arrayOfNulls<RGB>(oldLength) }
-        for (i in rotatedMap.indices) {
-            for (j in 0 until rotatedMap[i].length) {
+        val oldWidth: Int = basemap[0].size
+        val rotatedMap: Array<Array<RGB?>> = Array(oldWidth){ arrayOfNulls<RGB>(oldLength) }
+        for (i in 0 until oldWidth) {
+            for (j in 0 until oldLength) {
                 rotatedMap[i][j] = basemap[oldLength - j - 1][i]
             }
         }
         starting_pixel = Coordinate(starting_pixel.horr, oldLength - starting_pixel.verr - 1)
         starting_pixel = Coordinate(starting_pixel.verr, (starting_pixel.horr - carWidth + 1).toInt())
-        basemap = rotatedMap
+        for (i in basemap.indices){
+            for (j in basemap[0].indices){
+                basemap[i][j] = rotatedMap[i][j]!!
+            }
+        }
+
     }
 
     private fun flipVertical() {
         for (i in 0 until (basemap.size / 2)) {
-            for (j in 0 until basemap[i].length) {
-                val term: RGB? = basemap[i][j]
+            for (j in basemap[i].indices) {
+                val term: RGB = basemap[i][j]
                 basemap[i][j] = basemap[basemap.size - i - 1][j]
                 basemap[basemap.size - i - 1][j] = term
             }
@@ -209,20 +214,15 @@ class GridMap(map: Array<Array<RGB?>>, car: Car, direction: String) {
         starting_pixel = Coordinate((starting_pixel.verr - carLength + 1).toInt(), starting_pixel.horr)
     }
 
-    fun getBasemap(): Array<Array<RGB?>> {
-        return basemap
-    }
 
-    fun getBorderAdjustedMap(): Array<Array<RGB?>> {
-        return borderAdjustedMap
-    }
+
 
     init {
         basemap = map
-        carWidth = car.getWidth()
-        carLength = car.getLength()
+        carWidth = car.width.toDouble()
+        carLength = car.length.toDouble()
         carDirection = direction
-        starting_pixel = car.getStarting()
+        starting_pixel = car.starting
         for (i in 0..19) {
             for (j in 0..19) {
                 basemap[i][j] = headColor
@@ -233,5 +233,5 @@ class GridMap(map: Array<Array<RGB?>>, car: Car, direction: String) {
 }
 
 class Gridnode(val coordinate: Coordinate, val isEmpty: Boolean)
-internal class Coordinate(val verr: Int, //y vertical length, x width
-                          val horr: Int)
+class Coordinate(val verr: Int, //y vertical length, x width
+                 val horr: Int)
