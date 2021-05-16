@@ -41,12 +41,7 @@ class MainActivity : AppCompatActivity() {
         }
         joyStick.setOnMoveListener { angle, strength ->
             if(!manualSwitch.isChecked) return@setOnMoveListener //if not manual control, skip this function
-            //Todo: Reimplement this function with the .ino function to natively support the magnitude/angle rather than convert back and forth
-            val angleRadians = -angle.toFloat() * Math.PI / 180
-            val length = strength.toFloat() / 100 //change from 0 to 100, to 0 to 1
-            val analogX = cos(angleRadians)*length
-            val analogY = -sin(angleRadians)*length
-            publish("smartcar/analog/",  analogX.toString() + "," + analogY.toString())
+            publish("smartcar/analog/",  strength.toString() + "," + angle.toString())
         }
         manualSwitch.setOnClickListener {
             if(manualSwitch.isChecked) {
