@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/main_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="#333333"
+        android:elevation="4dp"
+        android:textColor="#E6E6E6"
+        android:textColorPrimary="#E6E6E6"
+        app:layout_constraintTop_toTopOf="parent"
+        app:navigationContentDescription="Navigation Description"
+        app:navigationIcon="@drawable/ic_baseline_menu_24"
+        app:popupTheme="@style/ThemeOverlay.MaterialComponents.Light"
+        app:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
+        app:title="Smart Car Controls" />
+
+    <LinearLayout
+        android:id="@+id/manual_control_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="visible">
+        <!-- visibility always visible for now - make invisible when multiple layouts are used
+         MainActivity.kt will handle toggling layouts' visibility at that point. -->
+        <io.github.controlwear.virtual.joystick.android.JoystickView
+            android:id="@+id/joyStick"
+            android:layout_width="218dp"
+            android:layout_height="240dp"
+            android:layout_marginStart="96dp"
+            android:layout_marginLeft="96dp"
+            android:layout_marginTop="288dp"
+            app:JV_backgroundColor="#CCCCCC"
+            app:JV_borderColor="#000000"
+            app:JV_borderWidth="4dp"
+            app:JV_buttonColor="#AA0000"
+            app:JV_buttonSizeRatio="15%"
+            app:JV_fixedCenter="false"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:alpha="0.1"/>
+        <TextView
+            android:id="@+id/CoordDisplay"
+            android:layout_width="191dp"
+            android:layout_height="56dp"
+            android:layout_marginStart="108dp"
+            android:layout_marginLeft="108dp"
+            android:layout_marginTop="0dp"
+            android:text=""
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+        <Switch
+            android:id="@+id/manualSwitch"
+            android:layout_width="200dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="100dp"
+            android:layout_marginLeft="96dp"
+            android:layout_marginTop="-70dp"
+            android:text="Manual Control"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:ignore="UseSwitchCompatOrMaterialXml" />
+    </LinearLayout>
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
