@@ -40,12 +40,23 @@ class MainActivity : AppCompatActivity() {
             true
         }
         joyStick.setOnMoveListener { angle, strength ->
+            if(!manualSwitch.isChecked) return@setOnMoveListener //if not manual control, skip this function
             //Todo: Reimplement this function with the .ino function to natively support the magnitude/angle rather than convert back and forth
             val angleRadians = -angle.toFloat() * Math.PI / 180
             val length = strength.toFloat() / 100 //change from 0 to 100, to 0 to 1
             val analogX = cos(angleRadians)*length
             val analogY = -sin(angleRadians)*length
             publish("smartcar/analog/",  analogX.toString() + "," + analogY.toString())
+        }
+        manualSwitch.setOnClickListener {
+            if(manualSwitch.isChecked) {
+                joyStick.alpha = 1.0F
+                publish("smartcar/cleansurfaces/",  "manual")
+            }
+            else {
+                joyStick.alpha = 0.1F
+                publish("smartcar/cleansurfaces/",  "auto")
+            }
         }
     }
 
@@ -79,6 +90,8 @@ class MainActivity : AppCompatActivity() {
                 override fun onSuccess(asyncActionToken: IMqttToken?) {
                     Log.d(MainActivity.TAG, "Connection success") //logcat logging
                     subscribe("smartcar/#", 1)
+                    if(!manualSwitch.isChecked) publish("smartcar/cleansurfaces/",  "auto")
+                    publish("smartcar/",  "App has been connected.")
                 }
 
                 override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {

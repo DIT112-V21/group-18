@@ -30,6 +30,7 @@ GP2D120 leftIR(arduinoRuntime,LEFT_IR_PIN_1);
 
 const int NON_VALID_MEASUREMENT = 0;
 boolean finishedCleaning = true;
+boolean manualControl = false;
 
 BrushedMotor leftMotor(arduinoRuntime, smartcarlib::pins::v2::leftMotorPins);
 BrushedMotor rightMotor(arduinoRuntime, smartcarlib::pins::v2::rightMotorPins);
@@ -58,12 +59,18 @@ void setup() {
     mqtt.subscribe("smartcar/#", 1);
     mqtt.onMessage([](String topic, String message) {
       if (topic == "smartcar/analog/") {
+        manualControl = true;
         int commaIdx = message.indexOf(",");
         float x = message.substring(0, commaIdx - 1).toFloat();
         float y =  message.substring(commaIdx+1).toFloat();
         joystick(x,y);
         Serial.println(topic + " " + message);
-      } 
+      }
+      else if(topic == "smartcar/cleansurfaces/") {
+        if(message == "manual") manualControl = true;
+        else manualControl = false;
+        Serial.println("Manual Control: " + String(manualControl));
+      }
       else {
         Serial.println(topic + " " + message);
       }
@@ -72,12 +79,11 @@ void setup() {
 }
 
 void loop() {
-  if (finishedCleaning == false){
+  if (!manualControl && !finishedCleaning) { //if not manual control and not finished cleaning, run cleanSurfaces function
      finishedCleaning = cleanSurfaces();
   }
-  
   if (mqtt.connected()) {
-   mqtt.loop();
+   mqtt.loop(); //loop mqtt message subscription
     const auto currentTime = millis();
 #ifdef __SMCE__
     static auto previousFrame = 0UL;
@@ -104,6 +110,8 @@ void loop() {
  //assuming normalized values between -1 and 1
  //Todo: reimplement this function with angle and magnitude since the android joystick natively uses this
 void joystick(float x, float y) {
+  //Todo: Rewrite function to natively use argumnents magnitude/angle, as the joystick in Android natively supports this.
+  
   // pythagoras for magnitude of the vector
   float magnitude = sqrt(x*x + y*y);
   // dot product of forward vector [0, 1] and [x, y] divided by the magnitudes of the two vectors, then take arccos for the angle and convert from radians to degrees
