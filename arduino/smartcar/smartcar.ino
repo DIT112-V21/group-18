@@ -27,9 +27,10 @@ const int RIGHT_IR_PIN_2 = 2;
 const int BACK_IR_PIN_3 = 3;
 GP2D120 frontIR(arduinoRuntime, FRONT_IR_PIN_0);
 GP2D120 leftIR(arduinoRuntime,LEFT_IR_PIN_1);
+GP2D120 backIR(arduinoRuntime,BACK_IR_PIN_3);
 
 const int NON_VALID_MEASUREMENT = 0;
-boolean finishedCleaning = true;
+boolean finishedCleaning = false;
 boolean manualControl = false;
 
 BrushedMotor leftMotor(arduinoRuntime, smartcarlib::pins::v2::leftMotorPins);
@@ -79,10 +80,11 @@ void setup() {
   else Serial.println("Failed to connect to MQTT broker.");
 }
 
-void loop() {
+void loop() {  
   if (!manualControl && !finishedCleaning) { //if not manual control and not finished cleaning, run cleanSurfaces function
      finishedCleaning = cleanSurfaces();
   }
+  
   if (mqtt.connected()) {
   mqtt.loop(); //loop mqtt message subscription
   const auto currentTime = millis();
@@ -146,18 +148,30 @@ void goToSurface() {
   delay(100); 
 }
 
-void orientCar(){
+boolean orientCar(){
    unsigned int maxDistance = 39;
    unsigned int lateralRange = readSensor(leftIR);
+   unsigned int orientingMaxAttempts = 155;
+   boolean oriented = false;
    Serial.print("Orienting car. ");
    Serial.print(lateralRange);
+   unsigned int count = 0;
    while (lateralRange >= maxDistance || lateralRange == NON_VALID_MEASUREMENT){
      lateralRange = readSensor(leftIR);
      turnLeft();
-     Serial.println(lateralRange); 
+     Serial.println(lateralRange);
+     Serial.print("Orienting attempt count: "); 
+     Serial.println(count);
+     ++count;
+     if (count > orientingMaxAttempts){
+        break;
+     }  
    }
-   lateralRange = readSensor(leftIR);
    car.setSpeed(0);
+   if (count < orientingMaxAttempts){
+    oriented = true;
+   }
+   return oriented;
 }
 
 void turnLeft(){
@@ -170,36 +184,53 @@ void turnLeft(){
 void turnRight(){
   car.overrideMotorSpeed(12, -24);
   Serial.println("Turning Right. ");
-  delay(100);
+  delay(500);
   car.setSpeed(0);
 }
  
-void followSurface(){
+boolean followSurface(){
   unsigned int minDistance = 10;
   unsigned int maxDistance = 39;
   unsigned int lateralRange = readSensor(leftIR);
-  unsigned int frontalRange = readSensor(frontIR);
-  while (lateralRange > minDistance && lateralRange < maxDistance && frontalRange < minDistance ){
+  unsigned int frontalRange = readSensor(frontUS);
+  unsigned int minUSDistance = 20;
+  while (lateralRange > minDistance && lateralRange < maxDistance){
     car.setSpeed(10);
     Serial.println("Going forward (followSurface). ");
     lateralRange = readSensor(leftIR);
+    frontalRange = readSensor(frontUS);
     Serial.println(lateralRange);
+    Serial.println(frontalRange);
+    if (frontalRange != NON_VALID_MEASUREMENT && frontalRange < minUSDistance){
+      break;
+    }
+    if (lateralRange == NON_VALID_MEASUREMENT){
+      break;
+    }
   }
   car.setSpeed(0);
   lateralRange = readSensor(leftIR);
-  if (lateralRange >= maxDistance){
-    unsigned int maxDistance = 39;
-    unsigned int lateralRange = readSensor(leftIR);
-    Serial.print("Orienting car. ");
-    Serial.print(lateralRange);
-    while (lateralRange >= maxDistance){
-      lateralRange = readSensor(leftIR);
-      turnLeft();
-      Serial.println(lateralRange); 
+  boolean goToNextSurface = false;
+  if (lateralRange >= maxDistance || lateralRange == NON_VALID_MEASUREMENT){
+    boolean oriented = orientCar();
+    if (oriented == false){
+      turnRight();
+      goToNextSurface = true;
+      Serial.println("Going to the next surface. ");
     }
-    lateralRange = readSensor(leftIR);
+  }
+  else if(frontalRange < minUSDistance){
+    Serial.println("Frontal range less than minimum ");
     car.setSpeed(0);
-    }  
+    delay(500);
+    car.overrideMotorSpeed(100, -100);
+    delay(200);
+    car.setSpeed(0);
+    delay(200);
+    goToNextSurface = true; 
+    Serial.println("Going to next surface. ");
+  }
+  return goToNextSurface;
 }
 
 boolean cleanSurfaces(){
@@ -208,8 +239,9 @@ boolean cleanSurfaces(){
   while(count < MAX_CLEANING_TIME){
      goToSurface();
      orientCar();
-     for (int i = 0; i < 100; ++i){
-        followSurface();
+     boolean goToNextSurface = false;
+     while(goToNextSurface == false){
+        goToNextSurface = followSurface();
      }
      ++count;
   }
