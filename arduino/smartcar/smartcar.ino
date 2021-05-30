@@ -1,15 +1,12 @@
 #include <vector>
+
 #include <MQTT.h>
 #include <WiFi.h> 
-#include <algorithm>
 #ifdef __SMCE__
-//#include <OV767X.h>
+#include <OV767X.h>
 #endif
 
 #include <Smartcar.h>
-
-// value taken from POSIX according to TA Ryan
-#define PI 3.14159265358979323846264338327950288
 
 #ifndef __SMCE__
 WiFiClient net;
@@ -17,6 +14,12 @@ WiFiClient net;
 MQTTClient mqtt;
 
 ArduinoRuntime arduinoRuntime;
+BrushedMotor leftMotor(arduinoRuntime, smartcarlib::pins::v2::leftMotorPins);
+BrushedMotor rightMotor(arduinoRuntime, smartcarlib::pins::v2::rightMotorPins);
+DifferentialControl control(leftMotor, rightMotor);
+
+SimpleCar car(control);
+
 const auto oneSecond = 1000UL;
 const int FRONT_US_PIN_6 = 6;
 const int FRONT_US_PIN_7 = 7;
@@ -30,14 +33,8 @@ GP2D120 leftIR(arduinoRuntime,LEFT_IR_PIN_1);
 GP2D120 backIR(arduinoRuntime,BACK_IR_PIN_3);
 
 const int NON_VALID_MEASUREMENT = 0;
-boolean finishedCleaning = false;
-boolean manualControl = false;
-
-BrushedMotor leftMotor(arduinoRuntime, smartcarlib::pins::v2::leftMotorPins);
-BrushedMotor rightMotor(arduinoRuntime, smartcarlib::pins::v2::rightMotorPins);
-
-DifferentialControl control(leftMotor, rightMotor);
-SimpleCar car(control);
+boolean finishedCleaning = true;
+boolean manualControl = true;
 
 unsigned int minDistance = 0;
 unsigned int obstacleAvoidDistance = 100;
@@ -45,85 +42,80 @@ unsigned int obstacleAvoidDistance = 100;
 std::vector<char> frameBuffer;
 
 void setup() {
-  Serial.begin(100);
-  Serial.setTimeout(200);
   Serial.begin(9600);
-  #ifdef __SMCE__
-  //  Camera.begin(QVGA, RGB888, 15);
-  //  frameBuffer.resize(Camera.width() * Camera.height() * Camera.bytesPerPixel());
-  mqtt.begin("trenavix.com", 1883, WiFi); //NA based broker, use a EU broker like aerostun.dev if in Europe for faster connection!
+#ifdef __SMCE__
+  Camera.begin(QVGA, RGB888, 15);
+  frameBuffer.resize(Camera.width() * Camera.height() * Camera.bytesPerPixel());
+  mqtt.begin("aerostun.dev", 1883, WiFi);
   // mqtt.begin(WiFi); // Will connect to localhost
-  #else
+#else
   mqtt.begin(net);
-  #endif
+#endif
   if (mqtt.connect("arduino", "public", "public")) {
-    mqtt.subscribe("smartcar/#", 1);
+    mqtt.subscribe("/smartcar/control/#", 1);
     mqtt.onMessage([](String topic, String message) {
-      if (topic == "smartcar/analog/") {
-        manualControl = true;
-        int commaIdx = message.indexOf(",");
-        float magnitude = message.substring(0, commaIdx - 1).toFloat();
-        int angle =  message.substring(commaIdx+1).toInt();
-        joystick(magnitude,angle);
-        Serial.println(topic + " " + message);
-      }
-      else if(topic == "smartcar/cleansurfaces/") {
-        if(message == "manual") manualControl = true;
-        else manualControl = false;
-        Serial.println("Manual Control: " + String(manualControl));
-      }
-      else {
-        Serial.println(topic + " " + message);
-      }
+      if (topic == "/smartcar/control/throttle") {
+        car.setSpeed(message.toInt());
+      } else if (topic == "/smartcar/control/steering") {
+        car.setAngle(message.toInt());
+      } else if(topic == "/smartcar/control/autoclean"){
+        if(message.toInt()== 1){
+          cleanSurfaces();
+        }
+      } else {
+         Serial.println(topic + " " + message);
+      }    
     });
   }
-  else Serial.println("Failed to connect to MQTT broker.");
 }
 
-void loop() {  
-  if (!manualControl && !finishedCleaning) { //if not manual control and not finished cleaning, run cleanSurfaces function
-     finishedCleaning = cleanSurfaces();
-  }
-  
+ 
+
+
+void loop() {
+     if (!manualControl && !finishedCleaning) { //if not manual control and not finished cleaning, run cleanSurfaces function
+        finishedCleaning = cleanSurfaces();
+     }
+
   if (mqtt.connected()) {
-  mqtt.loop(); //loop mqtt message subscription
-  const auto currentTime = millis();
-  #ifdef __SMCE__
-  static auto previousFrame = 0UL;
-  if (currentTime - previousFrame >= 65) {
-    previousFrame = currentTime;
-    //Camera.readFrame(frameBuffer.data());
-    //mqtt.publish("smartcar/camera", frameBuffer.data(), frameBuffer.size(), //Publish camera data (disabled for now)
-    //             false, 0);
+    mqtt.loop();
+    const auto currentTime = millis();
+#ifdef __SMCE__
+    static auto previousFrame = 0UL;
+    if (currentTime - previousFrame >= 65) {
+      previousFrame = currentTime;
+      Camera.readFrame(frameBuffer.data());
+      mqtt.publish("/smartcar/camera", frameBuffer.data(), frameBuffer.size(),
+                   false, 0);
     }
-  #endif
-  static auto previousTransmission = 0UL;
-  if (currentTime - previousTransmission >= oneSecond) {
-    previousTransmission = currentTime;
-    const auto distance = String(frontUS.getDistance());
-    mqtt.publish("smartcar/ultrasound/front", distance); //publish US data
+#endif
+    static auto previousTransmission = 0UL;
+    if (currentTime - previousTransmission >= oneSecond) {
+      previousTransmission = currentTime;
+      const auto distance = String(frontUS.getDistance());
+      mqtt.publish("/smartcar/ultrasound/front", distance);
+    }
   }
-}
 #ifdef __SMCE__
   // Avoid over-using the CPU if we are running in the emulator
   delay(35);
 #endif
 }
 
- //angle input is 0 to 359 degrees, beginning at 0 to the right (analog stick)
-void joystick(float magnitude, int angle) {
-  if(angle <= 180) {
-    angle-=90;
-  } 
-  else {
-    magnitude *= -1.f;
-    angle -= 270;
-  }
-  if(magnitude > 0) angle *= -1;
-  car.setSpeed(magnitude*100.0f);
-  car.setAngle(angle);
-  //delay(10); //delay controls, disabled for now
-}
+// //angle input is 0 to 359 degrees, beginning at 0 to the right (analog stick)
+//void joystick(float magnitude, int angle) {
+//  if(angle <= 180) {
+//    angle-=90;
+//  } 
+//  else {
+//    magnitude *= -1.f;
+//    angle -= 270;
+//  }
+//  if(magnitude > 0) angle *= -1;
+//  car.setSpeed(magnitude*100.0f);
+//  car.setAngle(angle);
+//  //delay(10); //delay controls, disabled for now
+//}
 
 unsigned int readSensor(DistanceSensor& distanceSensor){
   unsigned int distance = distanceSensor.getDistance();
