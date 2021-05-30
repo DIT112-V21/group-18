@@ -18,3 +18,7 @@ It will take a 2D map, the vehicle's initial position and trajectory to follow (
 
 ## What kind of technology are you going to use?
 We are going to implement this in Arduino, using the SmartCar platform. We will make use of different languages such as C#, C++, Java, Kotlin. 
+
+## Demo video
+
+https://www.youtube.com/watch?v=IYBenmeBbfA
